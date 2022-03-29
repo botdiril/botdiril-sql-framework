@@ -2,50 +2,89 @@ package com.botdiril.framework.sql.orm.column;
 
 import com.mysql.cj.MysqlType;
 
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-public record ColumnInfo<T>(String name, MysqlType type, Class<T> javaType)
+import com.botdiril.framework.sql.orm.column.bounds.DecimalPrecision;
+import com.botdiril.framework.sql.orm.types.EnumDataType;
+
+public record ColumnInfo<T>(String name, MysqlType type, Class<T> javaType, Object bounds)
 {
-    private static final Map<Class<?>, MysqlType> MYSQL_TYPE_MAP = new HashMap<>();
-
-    static
+    public ColumnInfo
     {
-        MYSQL_TYPE_MAP.put(boolean.class, MysqlType.BOOLEAN);
-        MYSQL_TYPE_MAP.put(Boolean.class, MysqlType.BOOLEAN);
-        MYSQL_TYPE_MAP.put(int.class, MysqlType.INT);
-        MYSQL_TYPE_MAP.put(Integer.class, MysqlType.INT);
-        MYSQL_TYPE_MAP.put(long.class, MysqlType.BIGINT);
-        MYSQL_TYPE_MAP.put(Long.class, MysqlType.BIGINT);
-        MYSQL_TYPE_MAP.put(float.class, MysqlType.FLOAT);
-        MYSQL_TYPE_MAP.put(Float.class, MysqlType.FLOAT);
-        MYSQL_TYPE_MAP.put(double.class, MysqlType.DOUBLE);
-        MYSQL_TYPE_MAP.put(Double.class, MysqlType.DOUBLE);
-        MYSQL_TYPE_MAP.put(String.class, MysqlType.VARCHAR);
-        MYSQL_TYPE_MAP.put(byte[].class, MysqlType.BLOB);
-        MYSQL_TYPE_MAP.put(Enum.class, MysqlType.ENUM);
-        MYSQL_TYPE_MAP.put(EnumSet.class, MysqlType.SET);
+        var requiredType = switch (type) {
+            case INT, BIGINT, VARCHAR, BLOB, FLOAT, DOUBLE -> Integer.class;
+            case ENUM, SET -> Class.class;
+            case DECIMAL -> DecimalPrecision.class;
+            default -> null;
+        };
+
+        if (requiredType == null ^ bounds == null)
+            throw new IllegalArgumentException("Data type bounds type mismatch.");
+
+        if (bounds != null && !requiredType.isInstance(bounds))
+            throw new IllegalArgumentException("Data type bounds type mismatch.");
     }
 
     public static <T> ColumnInfo<T> of(String name, Class<T> javaType)
     {
-        var mysqlType = MYSQL_TYPE_MAP.get(javaType);
-        return new ColumnInfo<>(name, mysqlType, javaType);
+        return of(name, javaType, null);
     }
 
-    public String getName()
+    public static <T> ColumnInfo<T> of(String name, Class<T> javaType, Object bounds)
     {
-        return this.name;
+        var dataType = EnumDataType.getByClass(javaType);
+
+        return new ColumnInfo<>(name, dataType.getJDBCType(), javaType, switch (dataType) {
+            case INT -> Objects.requireNonNullElse(bounds, 11);
+            case BIGINT -> Objects.requireNonNullElse(bounds, 20);
+            case FLOAT -> Objects.requireNonNullElse(bounds, 24);
+            case DOUBLE ->  Objects.requireNonNullElse(bounds, 53);
+            case DECIMAL -> Objects.requireNonNullElse(bounds, new DecimalPrecision(10, 0));
+            default -> bounds;
+        });
     }
 
-    public MysqlType getType()
+    @Override
+    public String toString()
     {
-        return this.type;
-    }
+        var sb = new StringBuilder();
+        sb.append('`');
+        sb.append(this.name);
+        sb.append("` ");
+        sb.append(this.type.getName());
 
-    public Class<T> getJavaType()
-    {
-        return this.javaType;
+        switch (this.type)
+        {
+            case INT, BIGINT, VARCHAR, BLOB, FLOAT, DOUBLE -> {
+                sb.append('(');
+                sb.append(this.bounds);
+                sb.append(')');
+            }
+
+            case ENUM, SET -> {
+                sb.append('(');
+                var enumConstants =  ((Class<?>) this.bounds).getEnumConstants();
+                var names = Arrays.stream(enumConstants)
+                                  .map(Enum.class::cast)
+                                  .map(Enum::name)
+                                  .collect(Collectors.joining(","));
+
+                sb.append(names);
+                sb.append(')');
+            }
+
+            case DECIMAL -> {
+                sb.append('(');
+                var precision = (DecimalPrecision) this.bounds;
+                sb.append(precision.significantDigits());
+                sb.append(',');
+                sb.append(precision.scale());
+                sb.append(')');
+            }
+        }
+
+        return sb.toString();
     }
 }

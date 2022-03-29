@@ -8,16 +8,19 @@ import org.junit.jupiter.api.Test;
 import com.botdiril.framework.sql.SqlEngine;
 import com.botdiril.framework.sql.connection.SqlConnectionConfig;
 import com.botdiril.framework.sql.connection.SqlConnectionManager;
+import com.botdiril.framework.sql.orm.ModelManager;
 
 public class TableTest
 {
+    private static ModelManager mgr;
     private static SqlConnectionManager sql;
 
     @BeforeAll
     public static void setup()
     {
-        var config = new SqlConnectionConfig("localhost:3306", "root", null, "junit_test");
-        sql = SqlEngine.create(config);
+        var config = new SqlConnectionConfig(System.getenv("DB_HOST"), "root", "changeit", "junit_test");
+        mgr = SqlEngine.create(config);
+        sql = mgr.getConnectionManager();
     }
 
     @Test
@@ -43,5 +46,6 @@ public class TableTest
     public static void tearDown()
     {
         sql.close();
+        mgr.close();
     }
 }

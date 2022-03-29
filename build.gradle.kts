@@ -1,10 +1,12 @@
 plugins {
     java
     `java-library`
+    `maven-publish`
+    signing
 }
 
 group = "com.botdiril"
-version = "5.0.0"
+version = "0.1"
 
 
 tasks.withType<Wrapper> {
@@ -15,10 +17,53 @@ tasks.withType<Wrapper> {
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+
+    withJavadocJar()
+    withSourcesJar()
 }
 
 repositories {
     mavenCentral()
+}
+
+sourceSets {
+    java {
+        create("test-model-botdiril") {
+            java.srcDirs("test-model-botdiril/java")
+
+            val mainSet = sourceSets.main.get()
+            compileClasspath += mainSet.compileClasspath + mainSet.output
+        }
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
+
+    repositories {
+        maven {
+            name = "Vega"
+            url = uri("https://vega.botdiril.com/")
+            credentials {
+                val vegaUsername: String? by project
+                val vegaPassword: String? by project
+
+                username = vegaUsername
+                password = vegaPassword
+            }
+        }
+    }
+}
+
+signing {
+    val signingKey: String? by project
+    val signingPassword: String? by project
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign(publishing.publications["maven"])
 }
 
 dependencies {

@@ -7,7 +7,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import com.botdiril.framework.sql.ISqlExecuteFunction;
+import com.botdiril.framework.sql.SqlEngine;
 import com.botdiril.framework.sql.util.DBException;
+import com.botdiril.framework.sql.util.SqlLogger;
 
 public final class WriteDBConnection extends ReadDBConnection
 {
@@ -49,5 +51,20 @@ public final class WriteDBConnection extends ReadDBConnection
     public <R> R exec(@Language("MySQL") String statement, boolean generateKeys, ISqlExecuteFunction<R> callback, Object... params)
     {
         return this.executeStatement(generateKeys, statement, callback, result -> result, params);
+    }
+
+    public boolean createSchema(String name)
+    {
+        if (!SqlEngine.isValidObjectName(name))
+            throw new DBException(name + " is not a valid schema name!");
+
+        if (this.schemaExists(name))
+            return false;
+
+        SqlLogger.instance.info("Creating schema `{}`.", name);
+
+        this.simpleExecute("CREATE SCHEMA " + name + " CHARACTER SET = 'utf8'");
+
+        return true;
     }
 }

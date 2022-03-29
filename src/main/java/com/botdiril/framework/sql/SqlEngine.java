@@ -1,13 +1,11 @@
 package com.botdiril.framework.sql;
 
-import java.sql.DriverManager;
+import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Objects;
 
 import com.botdiril.framework.sql.connection.SqlConnectionConfig;
-import com.botdiril.framework.sql.connection.SqlConnectionManager;
-import com.botdiril.framework.sql.connection.WriteDBConnection;
-import com.botdiril.framework.sql.util.DBException;
-import com.botdiril.framework.sql.util.SqlLogger;
+import com.botdiril.framework.sql.orm.ModelManager;
 import com.botdiril.framework.util.BotdirilInitializationException;
 
 public class SqlEngine
@@ -26,38 +24,15 @@ public class SqlEngine
         }
     }
 
-    public static SqlConnectionManager create(SqlConnectionConfig config)
+    public static ModelManager create(SqlConnectionConfig config, Path... modelDirs)
     {
         try
         {
-            var schemaName = config.defaultSchema();
+            var manager = new ModelManager(config);
+            Arrays.stream(modelDirs).forEach(manager::registerModels);
+            manager.initialize();
 
-            if (!isValidObjectName(schemaName))
-                throw new DBException(schemaName + " is not a valid schema name!");
-
-            var jdbcURL = "jdbc:mysql://" + config.host()
-                          + "/?useUnicode=true"
-                          + "&autoReconnect=true"
-                          + "&useJDBCCompliantTimezoneShift=true"
-                          + "&useLegacyDatetimeCode=false"
-                          + "&serverTimezone=UTC";
-
-            try (var c = DriverManager.getConnection(jdbcURL, config.username(), config.password()))
-            {
-                try (var db = WriteDBConnection.fromExisting(c))
-                {
-                    if (!db.schemaExists(schemaName))
-                    {
-                        SqlLogger.instance.info("Database needs to be reconstructed.");
-
-                        db.simpleExecute("CREATE SCHEMA " + schemaName + " CHARACTER SET = 'utf8'");
-                    }
-
-                    db.commit();
-                }
-            }
-
-            return new SqlConnectionManager(config);
+            return manager;
         }
         catch (Exception e)
         {
@@ -69,6 +44,6 @@ public class SqlEngine
     {
         Objects.requireNonNull(name);
 
-        return name.matches("[a-zA-Z]+?[a-zA-Z0-9_]*?[a-zA-Z]+");
+        return name.matches("[a-zA-Z]+?[a-zA-Z0-9_]*?[a-zA-Z0-9_]+");
     }
 }

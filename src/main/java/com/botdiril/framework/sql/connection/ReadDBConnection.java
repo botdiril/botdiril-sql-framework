@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 import com.botdiril.framework.sql.ISqlCallback;
+import com.botdiril.framework.sql.orm.types.EnumDataType;
 import com.botdiril.framework.sql.util.DBException;
 
 public class ReadDBConnection extends AbstractDBConnection
@@ -39,66 +40,15 @@ public class ReadDBConnection extends AbstractDBConnection
         }
     }
 
-
-    private Optional<byte[]> retrieveBlob(ResultSet resultSet, String columnName) throws SQLException, IOException
-    {
-        var blob = resultSet.getBlob(columnName);
-
-        if (resultSet.wasNull())
-        {
-
-            blob.free();
-            return Optional.empty();
-        }
-
-        try (var is = blob.getBinaryStream())
-        {
-            var bytes = new byte[(int) blob.length()];
-
-            if (is.read(bytes) != bytes.length)
-                throw new DBException("Blob read size mismatch.");
-
-            return Optional.of(bytes);
-        }
-        finally
-        {
-            blob.free();
-        }
-    }
-
     protected <R> Optional<R> retrieveValue(ResultSet resultSet, String columnName, Class<R> valueType) throws SQLException, IOException
     {
-        if (valueType == byte[].class)
-        {
-            return this.retrieveBlob(resultSet, columnName).map(valueType::cast);
-        }
+        var type = EnumDataType.getByClass(valueType);
+        var extractor = type.getExtractor();
 
-        Object val;
-
-        if (valueType == Integer.class)
-        {
-            val = resultSet.getInt(columnName);
-        }
-        else if (valueType == Long.class)
-        {
-            val = resultSet.getLong(columnName);
-        }
-        else if (valueType == Float.class)
-        {
-            val = resultSet.getFloat(columnName);
-        }
-        else if (valueType == Double.class)
-        {
-            val = resultSet.getDouble(columnName);
-        }
-        else if (valueType == String.class)
-        {
-            val = resultSet.getString(columnName);
-        }
-        else
-        {
+        if (extractor == null)
             throw new UnsupportedOperationException(String.format("Unsupported type %s.", valueType.getName()));
-        }
+
+        var val = extractor.extract(resultSet, columnName);
 
         return resultSet.wasNull() ? Optional.empty() : Optional.of(valueType.cast(val));
     }

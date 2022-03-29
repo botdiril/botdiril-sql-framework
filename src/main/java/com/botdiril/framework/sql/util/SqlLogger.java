@@ -11,7 +11,7 @@ import java.sql.SQLException;
 
 public class SqlLogger
 {
-    public static Logger instance;
+    public static final Logger instance;
 
     static
     {

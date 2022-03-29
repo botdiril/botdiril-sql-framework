@@ -19,12 +19,21 @@ public class SqlConnectionManager implements IDBResource
 
     public SqlConnectionManager(SqlConnectionConfig config) throws PropertyVetoException
     {
+        var schema = config.defaultSchema();
+
+        var url = "jdbc:mysql:// " + config.host() + "/" + schema +
+                "?useUnicode=true" +
+                "&autoReconnect=true" +
+                "&useJDBCCompliantTimezoneShift=true" +
+                "&useLegacyDatetimeCode=false" +
+                "&serverTimezone=UTC";
+
         this.dataSource = new ComboPooledDataSource();
         this.dataSource.setDriverClass(SqlEngine.DRIVER_CLASS.getName());
         this.dataSource.setIdleConnectionTestPeriod(IDLE_CONNECTION_TEST_PERIOD);
         this.dataSource.setTestConnectionOnCheckin(true);
         this.dataSource.setMaxConnectionAge(MAX_CONNECTION_AGE);
-        this.dataSource.setJdbcUrl("jdbc:mysql:// " + config.host() + "/" + config.defaultSchema() + "?useUnicode=true&autoReconnect=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
+        this.dataSource.setJdbcUrl(url);
         this.dataSource.setUser(config.username());
         this.dataSource.setPassword(config.password());
         this.dataSource.setAutoCommitOnClose(false);

@@ -2,13 +2,11 @@ package com.botdiril.framework.sql.orm.column;
 
 import org.intellij.lang.annotations.MagicConstant;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
+@Repeatable(ForeignKeyList.class)
 public @interface ForeignKey
 {
     class ParentDeleteAction

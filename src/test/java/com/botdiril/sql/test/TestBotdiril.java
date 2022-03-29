@@ -8,11 +8,11 @@ public class TestBotdiril
 {
     public static void main(String[] args)
     {
-        try
-        {
-            var config = new SqlConnectionConfig("localhost:3306", "root", null, "botdiril50");
+        var config = new SqlConnectionConfig(System.getenv("DB_HOST"), "root", "changeit", "botdiril50");
 
-            try (var sql = SqlEngine.create(config))
+        try (var mgr = SqlEngine.create(config))
+        {
+            try (var sql = mgr.getConnectionManager())
             {
                 try (var db = sql.getReadOnly())
                 {

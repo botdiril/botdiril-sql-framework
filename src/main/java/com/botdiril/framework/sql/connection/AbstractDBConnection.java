@@ -2,7 +2,6 @@ package com.botdiril.framework.sql.connection;
 
 import org.intellij.lang.annotations.Language;
 
-import java.io.ByteArrayInputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -11,8 +10,9 @@ import java.sql.Statement;
 import com.botdiril.framework.sql.IDBResource;
 import com.botdiril.framework.sql.ISqlCallback;
 import com.botdiril.framework.sql.ISqlExecuteFunction;
-import com.botdiril.framework.sql.util.ParamNull;
+import com.botdiril.framework.sql.orm.types.EnumDataType;
 import com.botdiril.framework.sql.util.DBException;
+import com.botdiril.framework.sql.util.ParamNull;
 import com.botdiril.framework.sql.util.SqlLogger;
 
 public abstract class AbstractDBConnection implements IDBResource
@@ -44,28 +44,21 @@ public abstract class AbstractDBConnection implements IDBResource
             if (param instanceof ParamNull paramNull)
             {
                 statement.setNull(paramIdx, paramNull.type().getJdbcType());
+                continue;
             }
-            else if (param instanceof Integer intVal)
-            {
-                statement.setInt(paramIdx, intVal);
-            }
-            else if (param instanceof Long longVal)
-            {
-                statement.setLong(paramIdx, longVal);
-            }
-            else if (param instanceof String str)
-            {
-                statement.setString(paramIdx, str);
-            }
-            else if (param instanceof byte[] bytes)
-            {
-                ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
-                statement.setBinaryStream(paramIdx, stream);
-            }
-            else
-            {
+
+            var klass = param.getClass();
+            var type = EnumDataType.getByClass(klass);
+
+            if (type == null)
                 throw new UnsupportedOperationException("Unsupported DB data type.");
-            }
+
+            var writer = type.getWriter();
+
+            if (writer == null)
+                throw new UnsupportedOperationException("Unsupported DB data type.");
+
+            writer.write(statement, paramIdx, param);
         }
     }
 
