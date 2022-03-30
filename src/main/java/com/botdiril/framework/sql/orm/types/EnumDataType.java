@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -37,7 +36,7 @@ public enum EnumDataType
 
     LOCAL_DATE_TIME(MysqlType.TIMESTAMP, LocalDateTime.class, Set.of(LocalDateTime.class),
         (resultSet, column) -> resultSet.getTimestamp(column).toLocalDateTime(),
-        (statement, idx, value) -> statement.setTimestamp(idx, Timestamp.valueOf(value))),
+        PreparedStatement::setObject),
 
     ENUM(MysqlType.ENUM, Enum.class, Set.of(Enum.class), null, null),
 

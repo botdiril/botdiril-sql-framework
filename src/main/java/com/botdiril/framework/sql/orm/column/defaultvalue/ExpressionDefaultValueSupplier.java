@@ -2,19 +2,17 @@ package com.botdiril.framework.sql.orm.column.defaultvalue;
 
 import org.intellij.lang.annotations.Language;
 
-import com.botdiril.framework.sql.util.SqlExpression;
-
-public class ExpressionDefaultValueSupplier<T> extends DefaultValueSupplier<SqlExpression<T>>
+public class ExpressionDefaultValueSupplier extends DefaultValueSupplier<String>
 {
-    private final SqlExpression<T> sqlExpression;
+    private final @Language(value = "MySQL", prefix = "SELECT ", suffix = " FROM dual") String sqlExpression;
 
-    protected ExpressionDefaultValueSupplier(@Language(value = "MySQL", prefix = "SELECT ", suffix = " FROM dual") String code)
+    public ExpressionDefaultValueSupplier(@Language(value = "MySQL", prefix = "SELECT ", suffix = " FROM dual") String code)
     {
-        this.sqlExpression = new SqlExpression<>(code);
+        this.sqlExpression = code;
     }
 
     @Override
-    public SqlExpression<T> get()
+    public String get()
     {
         return this.sqlExpression;
     }

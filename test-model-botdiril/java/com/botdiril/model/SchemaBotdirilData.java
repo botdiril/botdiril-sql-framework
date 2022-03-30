@@ -1,7 +1,11 @@
 package com.botdiril.model;
 
+import java.time.LocalDateTime;
+
 import com.botdiril.framework.sql.orm.ModelColumn;
 import com.botdiril.framework.sql.orm.column.*;
+import com.botdiril.framework.sql.orm.column.defaultvalue.DynamicDefaultValueSupplier;
+import com.botdiril.framework.sql.orm.column.defaultvalue.ExpressionDefaultValueSupplier;
 import com.botdiril.framework.sql.orm.schema.Schema;
 import com.botdiril.framework.sql.orm.table.Table;
 
@@ -50,6 +54,12 @@ public class SchemaBotdirilData
 
         @Column(dataType = String.class, bounds = 64)
         @NotNull
+        @DefaultValue(value = ExpressionDefaultValueSupplier.class, expression = "'Joe'")
         public ModelColumn<String> name;
+
+        @Column(dataType = LocalDateTime.class)
+        @NotNull
+        @DefaultValue(DynamicDefaultValueSupplier.UTCTimestampNow.class)
+        public ModelColumn<LocalDateTime> time_created;
     }
 }

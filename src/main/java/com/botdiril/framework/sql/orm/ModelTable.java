@@ -1,7 +1,6 @@
 package com.botdiril.framework.sql.orm;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.botdiril.framework.sql.SqlEngine;
@@ -30,7 +29,7 @@ public class ModelTable<T>
         this.tableMeta = tableMeta;
         this.tableClass = tableClass;
         this.model = model;
-        this.columns = new HashMap<>();
+        this.columns = new LinkedHashMap<>();
     }
 
     void addColumn(ModelColumn<?> column)
@@ -46,6 +45,19 @@ public class ModelTable<T>
     public String getName()
     {
         return this.name;
+    }
+
+    public Collection<ModelColumn<?>> getColumns()
+    {
+        return Collections.unmodifiableCollection(this.columns.values());
+    }
+
+    public Optional<ModelColumn<?>> getPrimaryKeyColumn()
+    {
+        return this.columns.values()
+                           .stream()
+                           .filter(ModelColumn::isPrimaryKey)
+                           .findFirst();
     }
 
     public T getTable()
@@ -68,21 +80,26 @@ public class ModelTable<T>
         return this.model;
     }
 
-    void build(WriteDBConnection db, Model model)
+    void build(WriteDBConnection db)
     {
-        db.simpleExecute("USE " + model.getName());
+        var schemaName = this.model.getName();
+
+        db.simpleExecute("USE " + schemaName);
 
         if (db.tableExists(this.name))
+        {
+            for (var col : this.columns.values())
+                col.build(db);
+
             return;
+        }
 
-        var tblQualifiedName = model.getName() + "." + this.name;
+        SqlLogger.instance.info("Creating table `{}`.`{}`.", schemaName, this.name);
 
-        SqlLogger.instance.info("Creating table {}.", tblQualifiedName);
-
-        var colCreateInfo = columns.values()
-                                   .stream()
-                                   .map(ModelColumn::getCreateInfo)
-                                   .collect(Collectors.joining(", \n"));
+        var colCreateInfo = this.columns.values()
+                                        .stream()
+                                        .map(ModelColumn::getCreateInfo)
+                                        .collect(Collectors.joining(", \n"));
 
         db.simpleExecute("""
         CREATE TABLE %s (

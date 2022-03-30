@@ -1,5 +1,10 @@
 package com.botdiril.framework.sql.orm;
 
-public record ModelForeignKey(ModelTable<?> table, ModelColumn<?> column)
+import org.intellij.lang.annotations.MagicConstant;
+
+import com.botdiril.framework.sql.orm.column.ForeignKey;
+
+public record ModelForeignKey(ModelColumn<?> column,
+                              @MagicConstant(flagsFromClass = ForeignKey.ParentDeleteAction.class) int parentDeleteAction)
 {
 }

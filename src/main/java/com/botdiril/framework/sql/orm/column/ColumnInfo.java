@@ -20,10 +20,7 @@ public record ColumnInfo<T>(String name, MysqlType type, Class<T> javaType, Obje
             default -> null;
         };
 
-        if (requiredType == null ^ bounds == null)
-            throw new IllegalArgumentException("Data type bounds type mismatch.");
-
-        if (bounds != null && !requiredType.isInstance(bounds))
+        if (requiredType != null && !requiredType.isInstance(bounds))
             throw new IllegalArgumentException("Data type bounds type mismatch.");
     }
 

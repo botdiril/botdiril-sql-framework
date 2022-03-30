@@ -1,7 +1,6 @@
 package com.botdiril.framework.sql.orm;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.botdiril.framework.sql.connection.WriteDBConnection;
@@ -23,7 +22,7 @@ public class Model
         this.schemaMeta = schemaMeta;
         this.schemaClass = schemaClass;
 
-        this.tables = new HashMap<>();
+        this.tables = new LinkedHashMap<>();
 
         this.manager = manager;
     }
@@ -48,6 +47,11 @@ public class Model
         return this.tables.get(name);
     }
 
+    public Collection<ModelTable<?>> getTables()
+    {
+        return Collections.unmodifiableCollection(this.tables.values());
+    }
+
     public Schema getSchemaMeta()
     {
         return this.schemaMeta;
@@ -67,7 +71,7 @@ public class Model
     {
         db.createSchema(this.name);
 
-        this.tables.forEach((name, table) -> table.build(db, this));
+        this.tables.forEach((name, table) -> table.build(db));
     }
 
     @Override

@@ -16,11 +16,10 @@ import java.util.stream.Collectors;
 import com.botdiril.framework.sql.connection.SqlConnectionConfig;
 import com.botdiril.framework.sql.connection.SqlConnectionManager;
 import com.botdiril.framework.sql.connection.WriteDBConnection;
-import com.botdiril.framework.sql.orm.column.Column;
-import com.botdiril.framework.sql.orm.column.ColumnInfo;
-import com.botdiril.framework.sql.orm.column.EnumColumnFlag;
-import com.botdiril.framework.sql.orm.column.PrimaryKey;
+import com.botdiril.framework.sql.orm.column.*;
 import com.botdiril.framework.sql.orm.column.bounds.DecimalPrecision;
+import com.botdiril.framework.sql.orm.column.defaultvalue.DefaultValueSupplier;
+import com.botdiril.framework.sql.orm.column.defaultvalue.ExpressionDefaultValueSupplier;
 import com.botdiril.framework.sql.orm.schema.Schema;
 import com.botdiril.framework.sql.orm.table.Table;
 import com.botdiril.framework.sql.util.SqlLogger;
@@ -82,6 +81,13 @@ public class ModelManager implements AutoCloseable
 
     private final Map<String, Model> models;
 
+    private record KeyReferenceList<T>(ModelColumn<T> column, List<ForeignKey> keys)
+    {
+
+    }
+
+    private final List<KeyReferenceList<?>> deferredForeignKeys;
+
     private final List<ModelCompiler> compilers;
 
     public ModelManager(SqlConnectionConfig config)
@@ -92,6 +98,8 @@ public class ModelManager implements AutoCloseable
 
         this.models = new HashMap<>();
         this.compilers = new ArrayList<>();
+
+        this.deferredForeignKeys = new ArrayList<>();
     }
 
     public void registerModels(Path modelDir)
@@ -221,9 +229,44 @@ public class ModelManager implements AutoCloseable
 
         var lookup = MethodHandles.lookup();
 
-        var constructor = lookup.findConstructor(ModelColumn.class, MethodType.methodType(void.class, String.class, Column.class, ColumnInfo.class, ModelTable.class, EnumSet.class));
+        var defaultValueAnnotation = field.getAnnotation(DefaultValue.class);
 
-        var column = (ModelColumn<?>) constructor.invoke(columnNameRaw, columnAnnotation, columnInfo, table, flags);
+        var defaultValueSupplier = (DefaultValueSupplier<?>) null;
+
+        if (defaultValueAnnotation != null)
+        {
+            var defaultValueSupplierClass = defaultValueAnnotation.value();
+
+            if (defaultValueSupplierClass == ExpressionDefaultValueSupplier.class)
+            {
+                defaultValueSupplier = new ExpressionDefaultValueSupplier(defaultValueAnnotation.expression());
+            }
+            else
+            {
+                try
+                {
+                    var supplierCtor = lookup.findConstructor(defaultValueSupplierClass, MethodType.methodType(void.class));
+                    defaultValueSupplier = (DefaultValueSupplier<?>) supplierCtor.invoke();
+                }
+                catch (NoSuchMethodException e)
+                {
+                    throw new NoSuchElementException("Default value supplier `%s` does not have a public no-arg constructor.".formatted(defaultValueSupplierClass));
+                }
+            }
+        }
+
+        var constructor = lookup.findConstructor(ModelColumn.class, MethodType.methodType(void.class, String.class, Column.class, ColumnInfo.class, ModelTable.class, EnumSet.class, DefaultValueSupplier.class));
+
+        var column = (ModelColumn<?>) constructor.invoke(columnName, columnAnnotation, columnInfo, table, flags, defaultValueSupplier);
+
+        var foreignKeyAnnotations = field.getAnnotationsByType(ForeignKey.class);
+
+        if (foreignKeyAnnotations.length != 0)
+        {
+            var keys = new KeyReferenceList<>(column, Arrays.asList(foreignKeyAnnotations));
+
+            this.deferredForeignKeys.add(keys);
+        }
 
         table.addColumn(column);
     }
@@ -232,6 +275,46 @@ public class ModelManager implements AutoCloseable
     {
         if (this.state != Phase.INITIAL)
             throw new IllegalStateException("Cannot initialize a model manager in this state.");
+
+        for (var fk : this.deferredForeignKeys)
+        {
+            var column = fk.column();
+
+            var keys = fk.keys();
+
+            for (var key : keys)
+            {
+                var targetTblClass = key.value();
+                var targetSchemaClass = targetTblClass.getDeclaringClass();
+                var deleteAction = key.parentDeleteAction();
+
+                var modelAnnotation = targetSchemaClass.getAnnotation(Schema.class);
+                var tableAnnotation = targetTblClass.getAnnotation(Table.class);
+
+                var modelName = modelAnnotation.name();
+                var tableName = tableAnnotation.name();
+
+                var targetModel = this.models.get(modelName);
+                assert targetModel != null;
+
+                var targetTable = targetModel.getTable(tableName);
+                assert targetTable != null;
+
+                var primaryColumn = targetTable.getPrimaryKeyColumn();
+
+                if (primaryColumn.isEmpty())
+                {
+                    var srcTbl = column.getTable();
+                    var srcSchema = srcTbl.getSchema();
+
+                    throw new IllegalStateException("Column `%s`.`%s`.`%s` refers to the table `%s`.`%s`, which doesn't have a primary key!".formatted(
+                        srcSchema.getName(), srcTbl.getName(), column.getName(), modelName, tableName
+                    ));
+                }
+
+                column.addForeignKey(primaryColumn.get(), deleteAction);
+            }
+        }
 
         var jdbcURL = "jdbc:mysql://" + this.config.host()
                 + "/?useUnicode=true"
@@ -246,7 +329,15 @@ public class ModelManager implements AutoCloseable
             {
                 db.createSchema(this.config.defaultSchema());
 
-                models.forEach((name, model) -> model.build(db));
+                this.models.forEach((name, model) -> model.build(db));
+
+                this.models.values()
+                           .stream()
+                           .map(Model::getTables)
+                           .flatMap(Collection::stream)
+                           .map(ModelTable::getColumns)
+                           .flatMap(Collection::stream)
+                           .forEach(column -> column.buildForeignKeys(db));
 
                 db.commit();
             }
