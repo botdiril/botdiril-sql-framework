@@ -28,10 +28,10 @@ jobs:
     - name: Execute Gradle build
       run: |
         chmod +x ./gradlew
-        ./gradlew build
+        ./gradlew build -x test 
 
     - name: Publish to Vega
-      run: ./gradlew publish
+      run: ./gradlew publish -x test
       env:
         ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_PRIVATE_KEY }}
         ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_PRIVATE_KEY }}
