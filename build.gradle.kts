@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.botdiril"
-version = "0.1.4"
+version = "0.1.5"
 
 
 tasks.withType<Wrapper> {
@@ -69,8 +69,8 @@ signing {
 dependencies {
     implementation("org.jetbrains", "annotations", "20.1.0")
 
-    implementation("com.mchange", "c3p0", "0.9.5.5")
-    implementation("mysql", "mysql-connector-java", "8.0.22")
+    api("com.mchange", "c3p0", "0.9.5.5")
+    api("mysql", "mysql-connector-java", "8.0.22")
 
     implementation("org.apache.logging.log4j", "log4j-core", "2.16.0")
     implementation("org.apache.logging.log4j", "log4j-api", "2.16.0")
