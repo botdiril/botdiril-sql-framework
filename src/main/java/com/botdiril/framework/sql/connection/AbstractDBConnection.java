@@ -66,7 +66,7 @@ public abstract class AbstractDBConnection implements IDBResource
     {
         try
         {
-            try (var stat = connection.prepareStatement(statement, generatedKeys ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS))
+            try (var stat = this.connection.prepareStatement(statement, generatedKeys ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS))
             {
                 this.setParams(stat, params);
 
@@ -133,7 +133,7 @@ public abstract class AbstractDBConnection implements IDBResource
 
     public boolean isAutoCommiting()
     {
-        return autocommit;
+        return this.autocommit;
     }
 
     public boolean isReadOnly()
