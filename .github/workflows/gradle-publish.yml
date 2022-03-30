@@ -22,11 +22,13 @@ jobs:
         server-id: github
         settings-path: ${{ github.workspace }}
 
-    - name: Build with Gradle
+    - name: Set up Gradle
       uses: gradle/gradle-build-action@v2
 
     - name: Execute Gradle build
-      run: ./gradlew build
+      run: |
+        chmod +x ./gradlew
+        ./gradlew build
 
     - name: Publish to Vega
       run: ./gradlew publish
