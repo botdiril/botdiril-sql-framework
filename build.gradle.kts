@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.botdiril"
-version = "0.1.7"
+version = "0.1.8"
 
 
 tasks.withType<Wrapper> {
@@ -67,7 +67,7 @@ signing {
 }
 
 dependencies {
-    implementation("org.jetbrains", "annotations", "20.1.0")
+    api("org.jetbrains", "annotations", "23.0.0")
 
     api("com.mchange", "c3p0", "0.9.5.5")
     api("mysql", "mysql-connector-java", "8.0.22")
