@@ -74,7 +74,7 @@ public class ModelManager implements AutoCloseable
         COLUMN_BOUNDS_PROVIDERS.put(String.class, oneValueExtractor);
     }
 
-    private final UUID uuid;
+    private UUID uuid;
     private Phase state;
     private final SqlConnectionConfig config;
     private SqlConnectionManager connectionManager;
@@ -120,7 +120,17 @@ public class ModelManager implements AutoCloseable
         this.models.clear();
     }
 
-    private void loadModel(Class<?> klass)
+    public Model getModel(String name)
+    {
+        return this.models.get(name);
+    }
+
+    public Map<String, Model> getModels()
+    {
+        return Collections.unmodifiableMap(this.models);
+    }
+
+    private void loadModel(ModelCompiler compiler, Class<?> klass)
     {
         var modelAnnotation = klass.getAnnotation(Schema.class);
 
@@ -129,7 +139,7 @@ public class ModelManager implements AutoCloseable
 
         var modelName = modelAnnotation.name();
 
-        var model = new Model(modelName, modelAnnotation, klass, this);
+        var model = new Model(modelName, modelAnnotation, klass, compiler, this);
 
         var classes = klass.getDeclaredClasses();
 
@@ -316,6 +326,9 @@ public class ModelManager implements AutoCloseable
             }
         }
 
+        this.models.values()
+                   .forEach(Model::generateRecords);
+
         var jdbcURL = "jdbc:mysql://" + this.config.host()
                 + "/?useUnicode=true"
                 + "&autoReconnect=true"
@@ -354,6 +367,16 @@ public class ModelManager implements AutoCloseable
             throw new IllegalStateException("Cannot return a connection manager in this state.");
 
         return this.connectionManager;
+    }
+
+    public UUID getUUID()
+    {
+        return this.uuid;
+    }
+
+    public void setUUID(UUID uuid)
+    {
+        this.uuid = uuid;
     }
 
     @Override

@@ -11,16 +11,18 @@ public class Model
     private final String name;
     private final Schema schemaMeta;
     private final Class<?> schemaClass;
+    private final ModelCompiler compiler;
 
     private final Map<String, ModelTable<?>> tables;
 
     private final ModelManager manager;
 
-    public Model(String name, Schema schemaMeta, Class<?> schemaClass, ModelManager manager)
+    public Model(String name, Schema schemaMeta, Class<?> schemaClass, ModelCompiler compiler, ModelManager manager)
     {
         this.name = name;
         this.schemaMeta = schemaMeta;
         this.schemaClass = schemaClass;
+        this.compiler = compiler;
 
         this.tables = new LinkedHashMap<>();
 
@@ -35,6 +37,11 @@ public class Model
             throw new IllegalArgumentException("One schema cannot contain two tables with the same name");
 
         this.tables.put(name, table);
+    }
+
+    public void generateRecords()
+    {
+        this.compiler.createRecords(this);
     }
 
     public String getName()

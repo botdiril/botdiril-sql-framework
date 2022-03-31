@@ -10,9 +10,10 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+import com.botdiril.framework.sql.orm.asm.TableInfoGenerator;
 import com.botdiril.framework.sql.util.SqlLogger;
 import com.botdiril.framework.util.BotdirilInitializationException;
 
@@ -39,7 +40,7 @@ class ModelCompiler implements AutoCloseable
         this.foundClasses = new HashMap<>();
     }
 
-    void load(Consumer<Class<?>> classConsumer)
+    void load(BiConsumer<ModelCompiler, Class<?>> classConsumer)
     {
         try
         {
@@ -49,11 +50,12 @@ class ModelCompiler implements AutoCloseable
                     .forEach(this::tryLoadFile);
             }
 
-            foundClasses.keySet().forEach(this::compile);
+            this.foundClasses.keySet()
+                             .forEach(this::compile);
 
-            var classes = classLoader.getClasses();
+            var classes = this.classLoader.getClasses();
 
-            classes.forEach(classConsumer);
+            classes.forEach(klass -> classConsumer.accept(this, klass));
         }
         catch (Exception e)
         {
@@ -66,8 +68,8 @@ class ModelCompiler implements AutoCloseable
     {
         SqlLogger.instance.info("Unloading model classes and the classloader.");
 
-        classLoader = null;
-        foundClasses.clear();
+        this.classLoader = null;
+        this.foundClasses.clear();
     }
 
     private void tryLoadFile(Path file)
@@ -144,6 +146,13 @@ class ModelCompiler implements AutoCloseable
             throw new RuntimeException("Compile failed.");
 
         fileManager.objects.forEach(object -> this.classLoader.createClass(object.getClassName(), object.getBytes()));
+    }
+
+    void createRecords(Model model)
+    {
+        var classes = TableInfoGenerator.generate(model);
+
+        classes.forEach(generatedClass -> this.classLoader.createClass(generatedClass.name(), generatedClass.data()));
     }
 
     private static final class JavaFileObject extends SimpleJavaFileObject

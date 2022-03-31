@@ -23,7 +23,7 @@ public class SchemaBotdirilData
         @Column(dataType = long.class)
         @ForeignKey(value = TableObjectTypes.class, parentDeleteAction = ForeignKey.ParentDeleteAction.CASCADE_DELETE)
         @NotNull
-        public ModelColumn<TableObjectTypes> ot_id;
+        public ModelColumn<Long> ot_id;
 
         @Column(dataType = String.class, bounds = 64)
         @NotNull

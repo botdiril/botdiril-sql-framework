@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.botdiril"
-version = "0.1.8"
+version = "0.2"
 
 
 tasks.withType<Wrapper> {
@@ -72,10 +72,13 @@ dependencies {
     api("com.mchange", "c3p0", "0.9.5.5")
     api("mysql", "mysql-connector-java", "8.0.22")
 
+    api("org.apache.commons", "commons-lang3", "3.11")
+
+    implementation("org.ow2.asm", "asm", "9.2")
+
     implementation("org.apache.logging.log4j", "log4j-core", "2.16.0")
     implementation("org.apache.logging.log4j", "log4j-api", "2.16.0")
 
-    implementation("org.apache.commons", "commons-lang3", "3.11")
 
     testImplementation("org.junit.jupiter", "junit-jupiter-api", "5.8.2")
     testRuntimeOnly("org.junit.jupiter", "junit-jupiter-engine", "5.8.2")
