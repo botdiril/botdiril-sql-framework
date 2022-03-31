@@ -12,6 +12,7 @@ import com.botdiril.framework.sql.connection.WriteDBConnection;
 import com.botdiril.framework.sql.orm.column.Column;
 import com.botdiril.framework.sql.orm.column.ColumnInfo;
 import com.botdiril.framework.sql.orm.column.EnumColumnFlag;
+import com.botdiril.framework.sql.orm.column.ForeignKey;
 import com.botdiril.framework.sql.orm.column.defaultvalue.DefaultValueSupplier;
 import com.botdiril.framework.sql.orm.column.defaultvalue.ExpressionDefaultValueSupplier;
 import com.botdiril.framework.sql.util.SqlLogger;
@@ -50,7 +51,7 @@ public class ModelColumn<T>
         this.flags = flags;
     }
 
-    public void addForeignKey(ModelColumn<?> refColumn, int deleteAction)
+    public void addForeignKey(ModelColumn<?> refColumn, ForeignKey.ParentDeleteAction deleteAction)
     {
         var fk = new ModelForeignKey(refColumn, deleteAction);
 
@@ -213,10 +214,12 @@ public class ModelColumn<T>
             SqlLogger.instance.info("Missing foreign key `{}`.`{}`.`{}` -> `{}`.`{}`.`{}`, recreating.",
                 schemaName, tableName, colName, refSchemaName, refTblName, refColName);
 
+            var delAct = fk.parentDeleteAction();
+
             db.simpleExecute("""
                 ALTER TABLE `%s`.`%s`
-                ADD FOREIGN KEY (%s) REFERENCES `%s`.`%s`(%s)
-                """.formatted(schemaName, tableName, colName, refSchemaName, refTblName, refColName));
+                ADD FOREIGN KEY (%s) REFERENCES `%s`.`%s`(%s) %s
+                """.formatted(schemaName, tableName, colName, refSchemaName, refTblName, refColName, delAct.getCreateInfo()));
         }
     }
 }
