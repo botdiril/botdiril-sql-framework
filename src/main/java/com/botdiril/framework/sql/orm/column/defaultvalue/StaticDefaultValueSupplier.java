@@ -4,7 +4,7 @@ public class StaticDefaultValueSupplier
 {
     public static class ZeroInteger extends StaticValueSupplier<java.lang.Integer>
     {
-        protected ZeroInteger()
+        public ZeroInteger()
         {
             super(0);
         }
@@ -12,7 +12,7 @@ public class StaticDefaultValueSupplier
 
     public static class ZeroLong extends StaticValueSupplier<java.lang.Long>
     {
-        protected ZeroLong()
+        public ZeroLong()
         {
             super(0L);
         }
@@ -20,7 +20,7 @@ public class StaticDefaultValueSupplier
 
     public static class ZeroFloat extends StaticValueSupplier<java.lang.Float>
     {
-        protected ZeroFloat()
+        public ZeroFloat()
         {
             super(0.0f);
         }
@@ -28,7 +28,7 @@ public class StaticDefaultValueSupplier
 
     public static class ZeroDouble extends StaticValueSupplier<java.lang.Double>
     {
-        protected ZeroDouble()
+        public ZeroDouble()
         {
             super(0.0d);
         }
@@ -36,7 +36,7 @@ public class StaticDefaultValueSupplier
 
     public static class TrueBoolean extends StaticValueSupplier<java.lang.Boolean>
     {
-        protected TrueBoolean()
+        public TrueBoolean()
         {
             super(true);
         }
@@ -44,7 +44,7 @@ public class StaticDefaultValueSupplier
 
     public static class FalseBoolean extends StaticValueSupplier<java.lang.Boolean>
     {
-        protected FalseBoolean()
+        public FalseBoolean()
         {
             super(false);
         }
@@ -52,7 +52,7 @@ public class StaticDefaultValueSupplier
 
     public static class EmptyString extends StaticValueSupplier<java.lang.String>
     {
-        protected EmptyString()
+        public EmptyString()
         {
             super("");
         }
