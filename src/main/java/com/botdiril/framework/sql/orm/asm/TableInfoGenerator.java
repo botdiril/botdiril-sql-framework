@@ -2,9 +2,6 @@ package com.botdiril.framework.sql.orm.asm;
 
 import org.objectweb.asm.*;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -18,7 +15,7 @@ public class TableInfoGenerator
 {
     private static final String OUTPUT_PACKAGE = "com/botdiril/tableinfo/";
 
-    public record GeneratedClass(String name, byte[] data)
+    public record GeneratedClass(String name, String path, byte[] data)
     {
 
     }
@@ -64,16 +61,7 @@ public class TableInfoGenerator
 
             cw.visitEnd();
 
-            var classData = new GeneratedClass(createdType.getClassName(), cw.toByteArray());
-
-            try
-            {
-                Files.write(Path.of("test.class"), cw.toByteArray());
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
+            var classData = new GeneratedClass(createdType.getClassName(), OUTPUT_PACKAGE, cw.toByteArray());
 
             outputClasses.add(classData);
         }
