@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.botdiril"
-version = "0.2.1"
+version = "0.2.2"
 
 
 tasks.withType<Wrapper> {
@@ -28,11 +28,15 @@ repositories {
 
 sourceSets {
     java {
-        create("test-model-botdiril") {
+        val modelSet = create("test-model-botdiril") {
             java.srcDirs("test-model-botdiril/java")
 
             val mainSet = sourceSets.main.get()
             compileClasspath += mainSet.compileClasspath + mainSet.output
+        }
+
+        test {
+            compileClasspath += modelSet.compileClasspath + modelSet.output
         }
     }
 }
@@ -79,6 +83,7 @@ dependencies {
     implementation("org.apache.logging.log4j", "log4j-core", "2.16.0")
     implementation("org.apache.logging.log4j", "log4j-api", "2.16.0")
 
+    implementation("com.google.jimfs", "jimfs", "1.2")
 
     testImplementation("org.junit.jupiter", "junit-jupiter-api", "5.8.2")
     testRuntimeOnly("org.junit.jupiter", "junit-jupiter-engine", "5.8.2")

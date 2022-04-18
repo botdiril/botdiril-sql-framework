@@ -5,8 +5,8 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
@@ -88,7 +88,6 @@ public class ModelManager implements AutoCloseable
 
     private final List<KeyReferenceList<?>> deferredForeignKeys;
 
-    private final List<ModelCompiler> compilers;
 
     public ModelManager(SqlConnectionConfig config)
     {
@@ -97,26 +96,21 @@ public class ModelManager implements AutoCloseable
         this.state = Phase.INITIAL;
 
         this.models = new HashMap<>();
-        this.compilers = new ArrayList<>();
 
         this.deferredForeignKeys = new ArrayList<>();
     }
 
-    public void registerModels(Path modelDir)
+    public void registerModels(Class<?> schemaKlass)
     {
         if (this.state != Phase.INITIAL)
             throw new IllegalStateException("Cannot register a model in this state.");
 
-        var mc = new ModelCompiler(modelDir);
-        mc.load(this::loadModel);
-        this.compilers.add(mc);
+        this.loadModel(schemaKlass);
     }
 
     @Override
     public void close()
     {
-        this.compilers.forEach(ModelCompiler::close);
-        this.compilers.clear();
         this.models.clear();
     }
 
@@ -130,7 +124,7 @@ public class ModelManager implements AutoCloseable
         return Collections.unmodifiableMap(this.models);
     }
 
-    private void loadModel(ModelCompiler compiler, Class<?> klass)
+    private void loadModel(Class<?> klass)
     {
         var modelAnnotation = klass.getAnnotation(Schema.class);
 
@@ -139,7 +133,7 @@ public class ModelManager implements AutoCloseable
 
         var modelName = modelAnnotation.name();
 
-        var model = new Model(modelName, modelAnnotation, klass, compiler, this);
+        var model = new Model(modelName, modelAnnotation, klass, this);
 
         var classes = klass.getDeclaredClasses();
 
@@ -278,6 +272,12 @@ public class ModelManager implements AutoCloseable
             this.deferredForeignKeys.add(keys);
         }
 
+        if (Modifier.isStatic(field.getModifiers()))
+            field.set(null, column);
+        else
+            SqlLogger.instance.error("Field `{}` in `{}` is not static, will not be initialized.", field, table.getTableClass());
+
+
         table.addColumn(column);
     }
 
@@ -325,9 +325,6 @@ public class ModelManager implements AutoCloseable
                 column.addForeignKey(primaryColumn.get(), deleteAction);
             }
         }
-
-        this.models.values()
-                   .forEach(Model::generateRecords);
 
         var jdbcURL = "jdbc:mysql://" + this.config.host()
                 + "/?useUnicode=true"

@@ -1,6 +1,5 @@
 package com.botdiril.framework.sql;
 
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -24,12 +23,12 @@ public class SqlEngine
         }
     }
 
-    public static ModelManager create(SqlConnectionConfig config, Path... modelDirs)
+    public static ModelManager create(SqlConnectionConfig config, Class<?>... modelKlasses)
     {
         try
         {
             var manager = new ModelManager(config);
-            Arrays.stream(modelDirs).forEach(manager::registerModels);
+            Arrays.stream(modelKlasses).forEach(manager::registerModels);
             manager.initialize();
 
             return manager;

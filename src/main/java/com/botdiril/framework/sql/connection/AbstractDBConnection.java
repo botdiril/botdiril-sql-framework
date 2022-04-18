@@ -75,7 +75,7 @@ public abstract class AbstractDBConnection implements IDBResource
                 return callback.exec(executeMethod.apply(stat));
             }
         }
-        catch (Exception e)
+        catch (Throwable e)
         {
             throw new DBException(e);
         }

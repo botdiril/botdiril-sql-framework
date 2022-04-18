@@ -1,4 +1,4 @@
-package com.botdiril.model;
+package com.botdiril.sql.test.schema;
 
 import java.time.LocalDateTime;
 
@@ -18,16 +18,16 @@ public class SchemaBotdirilData
         @Column(dataType = long.class)
         @PrimaryKey
         @AutoIncrement
-        public ModelColumn<Long> id;
+        public static ModelColumn<Long> id;
 
         @Column(dataType = long.class)
         @ForeignKey(value = TableObjectTypes.class, parentDeleteAction = ForeignKey.ParentDeleteAction.CASCADE_DELETE)
         @NotNull
-        public ModelColumn<Long> ot_id;
+        public static ModelColumn<Long> ot_id;
 
         @Column(dataType = String.class, bounds = 64)
         @NotNull
-        public ModelColumn<String> name;
+        public static ModelColumn<String> name;
     }
 
     @Table(name = "items", prefix = "it")
@@ -36,12 +36,12 @@ public class SchemaBotdirilData
         @Column(dataType = long.class)
         @PrimaryKey
         @AutoIncrement
-        public ModelColumn<Long> id;
+        public static ModelColumn<Long> id;
 
         @Column(dataType = long.class)
         @ForeignKey(value = TableObjectNames.class, parentDeleteAction = ForeignKey.ParentDeleteAction.CASCADE_DELETE)
         @NotNull
-        public ModelColumn<Long> on_id;
+        public static ModelColumn<Long> on_id;
     }
 
     @Table(name = "object_types", prefix = "ot")
@@ -50,16 +50,16 @@ public class SchemaBotdirilData
         @Column(dataType = long.class)
         @PrimaryKey
         @AutoIncrement
-        public ModelColumn<Long> id;
+        public static ModelColumn<Long> id;
 
         @Column(dataType = String.class, bounds = 64)
         @NotNull
         @DefaultValue(value = ExpressionDefaultValueSupplier.class, expression = "'Joe'")
-        public ModelColumn<String> name;
+        public static ModelColumn<String> name;
 
         @Column(dataType = LocalDateTime.class)
         @NotNull
         @DefaultValue(DynamicDefaultValueSupplier.UTCTimestampNow.class)
-        public ModelColumn<LocalDateTime> time_created;
+        public static ModelColumn<LocalDateTime> time_created;
     }
 }

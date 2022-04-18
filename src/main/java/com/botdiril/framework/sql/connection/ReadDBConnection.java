@@ -6,13 +6,18 @@ import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.RecordComponent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.function.Function;
 
 import com.botdiril.framework.sql.ISqlCallback;
+import com.botdiril.framework.sql.orm.ModelColumn;
 import com.botdiril.framework.sql.orm.types.EnumDataType;
 import com.botdiril.framework.sql.util.DBException;
 
@@ -40,6 +45,8 @@ public class ReadDBConnection extends AbstractDBConnection
         }
     }
 
+    /// Single value retrieval
+
     protected <R> Optional<R> retrieveValue(ResultSet resultSet, String columnName, Class<R> valueType) throws SQLException, IOException
     {
         var type = EnumDataType.getByClass(valueType);
@@ -52,6 +59,8 @@ public class ReadDBConnection extends AbstractDBConnection
 
         return resultSet.wasNull() ? Optional.empty() : Optional.of(valueType.cast(val));
     }
+
+    /// Non-ORM retrieval
 
     public <R> @NotNull Optional<R> getValue(@Language("MySQL") String statement, String columnName, Class<R> valueType, Object... params)
     {
@@ -71,6 +80,11 @@ public class ReadDBConnection extends AbstractDBConnection
 
             return this.retrieveValue(rs, columnName, valueType).orElse(fallbackValue);
         }, params);
+    }
+
+    public <R> R getValueOrNull(@Language("MySQL") String statement, String columnName, Class<R> valueType, Object... params)
+    {
+        return this.getValueOr(statement, columnName, valueType, null, params);
     }
 
     public <R> List<R> getList(@Language("MySQL") String statement, String columnName, Class<R> valueType, Object... params)
@@ -132,6 +146,122 @@ public class ReadDBConnection extends AbstractDBConnection
             }
 
             return resultList;
+        }, params);
+    }
+
+    /// ORM-based retrieval
+
+    public <R> @NotNull Optional<R> getValue(@Language("MySQL") String statement, ModelColumn<R> column, Object... params)
+    {
+        var info = column.getInfo();
+        return this.getValue(statement, info.name(), info.javaType(), params);
+    }
+
+    public <R> R getValueOr(@Language("MySQL") String statement, ModelColumn<R> column, R fallbackValue, Object... params)
+    {
+        var info = column.getInfo();
+        return this.getValueOr(statement, info.name(), info.javaType(), fallbackValue, params);
+    }
+
+    public <R> R getValueOrNull(@Language("MySQL") String statement, ModelColumn<R> column, Object... params)
+    {
+        var info = column.getInfo();
+        return this.getValueOrNull(statement, info.name(), info.javaType(), params);
+    }
+
+    public <R> List<R> getList(@Language("MySQL") String statement, ModelColumn<R> column, Object... params)
+    {
+        var info = column.getInfo();
+        return this.getList(statement, info.name(), info.javaType(), params);
+    }
+
+    public <KT, VT> Map<KT, VT> getMap(@Language("MySQL") String statement, ModelColumn<KT> keyColumn, ModelColumn<VT> valueColumn, Object... params)
+    {
+        var keyInfo = keyColumn.getInfo();
+        var valueInfo = valueColumn.getInfo();
+        return this.getMap(statement, keyInfo.name(), keyInfo.javaType(), valueInfo.name(), valueInfo.javaType(), params);
+    }
+
+    public <KT, VT> List<Pair<KT, VT>> getPairs(@Language("MySQL") String statement, ModelColumn<KT> leftColumn, ModelColumn<VT> rightColumn, Object... params)
+    {
+        var leftInfo = leftColumn.getInfo();
+        var rightInfo = rightColumn.getInfo();
+        return this.getPairs(statement, leftInfo.name(), leftInfo.javaType(), rightInfo.name(), rightInfo.javaType(), params);
+    }
+
+    /// Reflective record automatic databinding
+
+    private <R extends Record> @NotNull ISqlCallback<R, ResultSet> createRecordExtractor(Class<R> recordType)
+    {
+        var components = recordType.getRecordComponents();
+
+        Class<?>[] paramTypes = Arrays.stream(components)
+                                      .map(RecordComponent::getType)
+                                      .toArray(Class<?>[]::new);
+
+        var lookup = MethodHandles.publicLookup();
+
+        try
+        {
+            var ctor = lookup.findConstructor(recordType, MethodType.methodType(void.class, paramTypes));
+
+            Function<RecordComponent, ISqlCallback<?, ResultSet>> valueExtractor = comp -> rs -> this.retrieveValue(rs, comp.getName(), comp.getType()).orElse(null);
+
+            var valueExtractors = Arrays.stream(components)
+                                        .sequential()
+                                        .map(valueExtractor)
+                                        .toList();
+
+            return (rs) -> {
+                var args = valueExtractors.stream()
+                                          .map(ext -> ext.partialUnchecked(rs))
+                                          .map(ISqlCallback.ISqlConsumerUnchecked::exec)
+                                          .toList();
+
+                return recordType.cast(ctor.invokeWithArguments(args));
+            };
+        }
+        catch (ReflectiveOperationException e)
+        {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    public <R extends Record> @NotNull Optional<R> getRecord(@Language("MySQL") String statement, Class<R> recordType, Object... params)
+    {
+        var recordExtractor = createRecordExtractor(recordType);
+
+        return this.query(statement, rs -> {
+            if (!rs.next())
+                return Optional.empty();
+
+            return Optional.of(recordExtractor.exec(rs));
+        }, params);
+    }
+
+    public <R extends Record> R getRecordOr(@Language("MySQL") String statement, Class<R> recordType, R fallbackValue, Object... params)
+    {
+        var recordExtractor = createRecordExtractor(recordType);
+
+        return this.query(statement, rs -> {
+            if (!rs.next())
+                return fallbackValue;
+
+            return recordExtractor.exec(rs);
+        }, params);
+    }
+
+    public <R extends Record> List<R> getRecordList(@Language("MySQL") String statement, Class<R> recordType, Object... params)
+    {
+        var recordExtractor = createRecordExtractor(recordType);
+
+        return this.query(statement, rs -> {
+            var resultList = new ArrayList<R>();
+
+            while (rs.next())
+                resultList.add(recordExtractor.exec(rs));
+
+            return Collections.unmodifiableList(resultList);
         }, params);
     }
 

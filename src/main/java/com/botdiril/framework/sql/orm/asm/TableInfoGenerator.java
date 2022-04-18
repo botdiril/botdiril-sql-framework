@@ -15,11 +15,6 @@ public class TableInfoGenerator
 {
     private static final String OUTPUT_PACKAGE = "com/botdiril/tableinfo/";
 
-    public record GeneratedClass(String name, String path, byte[] data)
-    {
-
-    }
-
     public static List<GeneratedClass> generate(Model model)
     {
         var outputClasses = new ArrayList<GeneratedClass>();
