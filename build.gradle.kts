@@ -6,12 +6,12 @@ plugins {
 }
 
 group = "com.botdiril"
-version = "0.2.2"
+version = "0.2.3"
 
 
 tasks.withType<Wrapper> {
     distributionType = Wrapper.DistributionType.ALL
-    gradleVersion = "7.3"
+    gradleVersion = "7.4.2"
 }
 
 java {
