@@ -1,5 +1,6 @@
 package com.botdiril.framework.sql.connection;
 
+import com.mysql.cj.MysqlType;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.intellij.lang.annotations.Language;
@@ -126,6 +127,50 @@ public class ReadDBConnection extends AbstractDBConnection
             }
 
             return Collections.unmodifiableMap(resultList);
+        }, params);
+    }
+
+    public Optional<RowData> getRow(@Language("MySQL") String statement, Object... params)
+    {
+        return this.query(statement, rs -> {
+            if (!rs.next())
+                return Optional.empty();
+
+            var rd = new RowData();
+
+            var meta = rs.getMetaData();
+            var colCount = meta.getColumnCount();
+
+            for (int i = 1; i <= colCount; i++)
+            {
+                var col = meta.getColumnType(i);
+                var colName = meta.getColumnName(i);
+
+                var mysqlType = MysqlType.getByJdbcType(col);
+
+                if (mysqlType == MysqlType.UNKNOWN)
+                    continue;
+
+                var dataType = EnumDataType.getByJDBC(mysqlType);
+
+                if (dataType == null)
+                    continue;
+
+                var extractor = dataType.getExtractor();
+
+                if (extractor == null)
+                    throw new UnsupportedOperationException(String.format("Unsupported type %s.", mysqlType.getName()));
+
+                var val = extractor.extract(rs, colName);
+
+                var rootKlass = dataType.getRootClass();
+
+                var value = rs.wasNull() ? Optional.empty() : Optional.of(val);
+
+                rd.add(colName, rootKlass, value.map(rootKlass::cast));
+            }
+
+            return Optional.of(rd);
         }, params);
     }
 

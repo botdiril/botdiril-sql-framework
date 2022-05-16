@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.botdiril"
-version = "0.2.3"
+version = "0.3.0"
 
 
 tasks.withType<Wrapper> {
@@ -24,21 +24,6 @@ java {
 
 repositories {
     mavenCentral()
-}
-
-sourceSets {
-    java {
-        val modelSet = create("test-model-botdiril") {
-            java.srcDirs("test-model-botdiril/java")
-
-            val mainSet = sourceSets.main.get()
-            compileClasspath += mainSet.compileClasspath + mainSet.output
-        }
-
-        test {
-            compileClasspath += modelSet.compileClasspath + modelSet.output
-        }
-    }
 }
 
 publishing {

@@ -15,15 +15,15 @@ import com.botdiril.framework.sql.util.DBException;
 
 public enum EnumDataType
 {
-    BOOLEAN(MysqlType.BOOLEAN, boolean.class, Set.of(boolean.class, Boolean.class), ResultSet::getBoolean, PreparedStatement::setBoolean),
+    BOOLEAN(MysqlType.BOOLEAN, Boolean.class, Set.of(boolean.class, Boolean.class), ResultSet::getBoolean, PreparedStatement::setBoolean),
 
-    INT(MysqlType.INT, int.class, Set.of(int.class, Integer.class), ResultSet::getInt, PreparedStatement::setInt),
+    INT(MysqlType.INT, Integer.class, Set.of(int.class, Integer.class), ResultSet::getInt, PreparedStatement::setInt),
 
-    BIGINT(MysqlType.BIGINT, long.class, Set.of(long.class, Long.class), ResultSet::getLong, PreparedStatement::setLong),
+    BIGINT(MysqlType.BIGINT, Long.class, Set.of(long.class, Long.class), ResultSet::getLong, PreparedStatement::setLong),
 
-    FLOAT(MysqlType.FLOAT, float.class, Set.of(float.class, Float.class), ResultSet::getFloat, PreparedStatement::setFloat),
+    FLOAT(MysqlType.FLOAT, Float.class, Set.of(float.class, Float.class), ResultSet::getFloat, PreparedStatement::setFloat),
 
-    DOUBLE(MysqlType.DOUBLE, double.class, Set.of(double.class, Double.class), ResultSet::getDouble, PreparedStatement::setDouble),
+    DOUBLE(MysqlType.DOUBLE, Double.class, Set.of(double.class, Double.class), ResultSet::getDouble, PreparedStatement::setDouble),
 
     VARCHAR(MysqlType.VARCHAR, String.class, Set.of(String.class), ResultSet::getString, PreparedStatement::setString),
 
